@@ -415,8 +415,13 @@ func PullModelHandler(c *gin.Context) {
 		return
 	}
 
-	if req.Name == "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "name is required"})
+	var model string
+	if req.Model != "" {
+		model = req.Model
+	} else if req.Name != "" {
+		model = req.Name
+	} else {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "model is required"})
 		return
 	}
 
@@ -434,7 +439,7 @@ func PullModelHandler(c *gin.Context) {
 		ctx, cancel := context.WithCancel(c.Request.Context())
 		defer cancel()
 
-		if err := PullModel(ctx, req.Name, regOpts, fn); err != nil {
+		if err := PullModel(ctx, model, regOpts, fn); err != nil {
 			ch <- gin.H{"error": err.Error()}
 		}
 	}()
@@ -459,8 +464,13 @@ func PushModelHandler(c *gin.Context) {
 		return
 	}
 
-	if req.Name == "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "name is required"})
+	var model string
+	if req.Model != "" {
+		model = req.Model
+	} else if req.Name != "" {
+		model = req.Name
+	} else {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "model is required"})
 		return
 	}
 
@@ -478,7 +488,7 @@ func PushModelHandler(c *gin.Context) {
 		ctx, cancel := context.WithCancel(c.Request.Context())
 		defer cancel()
 
-		if err := PushModel(ctx, req.Name, regOpts, fn); err != nil {
+		if err := PushModel(ctx, model, regOpts, fn); err != nil {
 			ch <- gin.H{"error": err.Error()}
 		}
 	}()
@@ -503,12 +513,17 @@ func CreateModelHandler(c *gin.Context) {
 		return
 	}
 
-	if req.Name == "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "name is required"})
+	var model string
+	if req.Model != "" {
+		model = req.Model
+	} else if req.Name != "" {
+		model = req.Name
+	} else {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "model is required"})
 		return
 	}
 
-	if err := ParseModelPath(req.Name).Validate(); err != nil {
+	if err := ParseModelPath(model).Validate(); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -546,7 +561,7 @@ func CreateModelHandler(c *gin.Context) {
 		ctx, cancel := context.WithCancel(c.Request.Context())
 		defer cancel()
 
-		if err := CreateModel(ctx, req.Name, filepath.Dir(req.Path), commands, fn); err != nil {
+		if err := CreateModel(ctx, model, filepath.Dir(req.Path), commands, fn); err != nil {
 			ch <- gin.H{"error": err.Error()}
 		}
 	}()
@@ -571,14 +586,19 @@ func DeleteModelHandler(c *gin.Context) {
 		return
 	}
 
-	if req.Name == "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "name is required"})
+	var model string
+	if req.Model != "" {
+		model = req.Model
+	} else if req.Name != "" {
+		model = req.Name
+	} else {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "model is required"})
 		return
 	}
 
-	if err := DeleteModel(req.Name); err != nil {
+	if err := DeleteModel(model); err != nil {
 		if os.IsNotExist(err) {
-			c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("model '%s' not found", req.Name)})
+			c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("model '%s' not found", model)})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
@@ -611,21 +631,20 @@ func ShowModelHandler(c *gin.Context) {
 		return
 	}
 
-	switch {
-	case req.Model == "" && req.Name == "":
+	var model string
+	if req.Model != "" {
+		model = req.Model
+	} else if req.Name != "" {
+		model = req.Name
+	} else {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "model is required"})
 		return
-	case req.Model != "" && req.Name != "":
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "both model and name are set"})
-		return
-	case req.Model == "" && req.Name != "":
-		req.Model = req.Name
 	}
 
 	resp, err := GetModelInfo(req)
 	if err != nil {
 		if os.IsNotExist(err) {
-			c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("model '%s' not found", req.Name)})
+			c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("model '%s' not found", model)})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
